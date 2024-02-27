@@ -13,7 +13,7 @@ export default async function ProtectedRoute() {
     <div className={styles.page}>
       <h1>Forms Pro Managment</h1>
       <br />
-      Here you'll be able to manage forms and requests.
+      {/* Here you&apos;ll be able to manage forms and requests. */}
     </div>
   );
 }

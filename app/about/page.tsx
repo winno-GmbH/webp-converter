@@ -7,7 +7,7 @@ export default async function Page() {
     <div className={styles.page}>
       <h1>About Our Project</h1>
       <br />
-      Here you'll be able to read all interesting info about this cool project.
+      {/* Here you&apos;ll be able to read all interesting info about this cool project. */}
     </div>
   );
 }
