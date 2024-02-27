@@ -20,6 +20,7 @@ const MainConverter: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<{ file: File; settings: fileSettings }[]>([]);
   const [showImageModal, setShowImageModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
   const [newFileName, setNewFileName] = useState<string>("");
   const [newResize, setNewResize] = useState<string>("");
   const [newQuality, setNewQuality] = useState<string>("");
@@ -32,7 +33,7 @@ const MainConverter: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const defaultResize = 1;
-  const defaultQuality = 0.75;
+  const defaultQuality = 0.8;
 
   const [resize, setResize] = useState<number>(defaultResize);
   const [quality, setQuality] = useState<number>(defaultQuality);
