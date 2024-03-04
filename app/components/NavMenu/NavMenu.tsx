@@ -32,7 +32,7 @@ const NavMenu = () => {
       }
       if (session?.user?.name) {
         userName = session.user.name;
-        console.log(userName);
+        // console.log(userName);
       }
       return (
         <div className={classes.auth__button}>
@@ -67,18 +67,19 @@ const NavMenu = () => {
           </li>
           {session && (
             <>
-              <li className={clsx({ [classes.active_link]: pathname === "/dashboard" })}>
-                <Link href="/dashboard">Dashboard</Link>
-              </li>
-              <li className={clsx({ [classes.active_link]: pathname === "/forms" })}>
-                <Link href="/forms">Forms Pro</Link>
-              </li>
+              {/* <li className={clsx({ [classes.active_link]: pathname === "/dashboard" })}>
+                <Link href="/dashboard">Dashboard</Link> 
+              </li>*/}
+
               <li className={clsx({ [classes.active_link]: pathname === "/converter" })}>
                 <Link href="/converter">Image Converter</Link>
               </li>
-              <li className={clsx({ [classes.active_link]: pathname === "/audit" })}>
-                <Link href="/audit">Site Audit</Link>
+              <li className={clsx({ [classes.active_link]: pathname === "/forms" })}>
+                <Link href="/forms">Form Tools</Link>
               </li>
+              {/* <li className={clsx({ [classes.active_link]: pathname === "/audit" })}>
+                <Link href="/audit">Site Audit</Link>
+              </li> */}
             </>
           )}
           {/* {session && (

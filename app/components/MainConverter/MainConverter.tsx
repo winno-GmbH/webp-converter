@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { UploadIcon } from "@/app/assets/icons/svg/upload-icon";
-import { PlayIcon } from "@/app/assets/icons/svg/play-icon";
+// import { PlayIcon } from "@/app/assets/icons/svg/play-icon";
 import FileDisplay from "../FileDisplay/FileDisplay";
 import Preloader from "../Preloader/Preloader";
+import Saveloader from "../Preloader/Saveloader";
 import { DownloadIcon } from "@/app/assets/icons/svg/download-icon";
 import styles from "./MainConverter.module.css";
+import InputResize from "./InputResize";
+import InputQuality from "./InputQuality";
 
 interface fileSettings {
   resize: number;
   quality: number;
+  selected?: boolean;
 }
 
 const MainConverter: React.FC = () => {
@@ -31,6 +35,7 @@ const MainConverter: React.FC = () => {
 
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const defaultResize = 1;
   const defaultQuality = 0.8;
@@ -78,19 +83,21 @@ const MainConverter: React.FC = () => {
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsLoading(true);
     const files = event.target.files;
     if (files) {
-      setIsLoading(true);
       const newFiles = Array.from(files).map((file) => ({
         file,
-        settings: { resize, quality }, // Use resize and quality states
+        settings: { resize, quality, selected: true }, // Use resize and quality states
       }));
       setUploadedFiles((prevFiles) => [...prevFiles, ...newFiles]);
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
   const handleRemoveFile = (index: number, source: "uploaded" | "converted") => {
+    console.log("remove", index);
+
     if (source === "uploaded") {
       setUploadedFiles((prevUploadedFiles) => {
         const newUploadedFiles = [...prevUploadedFiles];
@@ -106,6 +113,53 @@ const MainConverter: React.FC = () => {
     }
   };
 
+  const handleSelectFile = (index: number) => {
+    // console.log("Select", index);
+
+    // console.log(uploadedFiles[index].settings.selected);
+    // uploadedFiles[index].settings.selected = !uploadedFiles[index].settings.selected;
+
+    setUploadedFiles((prevUploadedFiles) => {
+      const newUploadedFiles = [...prevUploadedFiles];
+      const selectedFile = newUploadedFiles[index];
+      selectedFile.settings.selected = !selectedFile.settings.selected; // Toggle the selected value
+      return newUploadedFiles; // Update the state with the modified array
+    });
+    // console.log(uploadedFiles[index].settings.selected);
+  };
+
+  const handleResize = (resize: number) => {
+    setResize(resize);
+
+    setUploadedFiles((prevUploadedFiles) => {
+      const newUploadedFiles = [...prevUploadedFiles];
+      newUploadedFiles
+        .filter((file) => file.settings.selected)
+        .map((file) => {
+          file.settings.resize = resize;
+          return file;
+        });
+
+      return newUploadedFiles; // Update the state with the modified array
+    });
+  };
+
+  const handleQuality = (quality: number) => {
+    setQuality(quality);
+
+    setUploadedFiles((prevUploadedFiles) => {
+      const newUploadedFiles = [...prevUploadedFiles];
+      newUploadedFiles
+        .filter((file) => file.settings.selected)
+        .map((file) => {
+          file.settings.quality = quality;
+          return file;
+        });
+
+      return newUploadedFiles; // Update the state with the modified array
+    });
+  };
+
   const handleFileDrop = (files: FileList | null) => {
     if (files) {
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -114,7 +168,7 @@ const MainConverter: React.FC = () => {
 
       const newFiles = Array.from(filteredFiles).map((file) => ({
         file,
-        settings: { resize, quality }, // Use resize and quality states
+        settings: { resize, quality, selected: true }, // Use resize and quality states
       }));
 
       setUploadedFiles((prevFiles) => [...prevFiles, ...newFiles]);
@@ -178,6 +232,8 @@ const MainConverter: React.FC = () => {
   const handleDownloadAllAsZip = async () => {
     const zip = new JSZip();
 
+    setIsSaving(true);
+
     /** Here we can add some progress bar - or at least preloader while generating WebP files  */
 
     const convertedFilesArray = await Promise.all(
@@ -193,8 +249,10 @@ const MainConverter: React.FC = () => {
       zip.file(`${file.file.name}`, file.file);
     });
 
+    setIsSaving(false);
+
     zip.generateAsync({ type: "blob" }).then((content: any) => {
-      saveAs(content, `${albumName.replace(" ", "_")}-webp.zip`);
+      saveAs(content, `${albumName.replaceAll(" ", "_")}-webp.zip`);
     });
   };
 
@@ -205,6 +263,14 @@ const MainConverter: React.FC = () => {
     setNewResize(resize.toString());
     setNewQuality(quality.toString());
   };
+
+  const handleRenameAlbum = (albumName: string) => {
+    setAlbumName(albumName);
+  };
+
+  useEffect(() => {
+    console.log("Main rerendering");
+  }, []);
 
   return (
     <main>
@@ -221,46 +287,14 @@ const MainConverter: React.FC = () => {
           />
           <span className={`${styles.bigButton} ${styles.uploadButton}`}>
             <UploadIcon />
-            Upload Images
+            {isLoading ? "Loading ..." : "Upload Images"}
           </span>
         </label>
         <div className={styles.uploadRange}>
-          <span>Resize: </span>
-          <input
-            type="range"
-            min="10"
-            max="100"
-            value={resize * 100}
-            id="resizeRange"
-            onChange={(e) => {
-              const parsedValue = parseInt(e.target.value);
-              const roundedValue = (parsedValue / 100).toFixed(2);
-              setResize(parseFloat(roundedValue));
-            }}
-          />
-          <span id="resizePercent" className={styles.uploadPercents}>
-            {Math.round(resize * 100)}
-          </span>
-          %
+          <InputResize resize={resize} setResize={handleResize} />
         </div>
         <div className={styles.uploadRange}>
-          <span>Quality: </span>
-          <input
-            type="range"
-            min="10"
-            max="100"
-            value={quality * 100}
-            id="qualityRange"
-            onChange={(e) => {
-              const parsedValue = parseInt(e.target.value);
-              const roundedValue = (parsedValue / 100).toFixed(2);
-              setQuality(parseFloat(roundedValue));
-            }}
-          />
-          <span id="qualityPercent" className={styles.uploadPercents}>
-            {Math.round(quality * 100)}
-          </span>
-          %
+          <InputQuality quality={quality} setQuality={handleQuality} />
         </div>
         {/* <button className={`${styles.bigButton} ${styles.convertButton}`} onClick={handleConvertToWebP}>
           <PlayIcon />
@@ -268,8 +302,16 @@ const MainConverter: React.FC = () => {
         </button> */}
 
         <button className={`${styles.bigButton} ${styles.downloadButton}`} onClick={handleDownloadAllAsZip}>
-          <DownloadIcon /> Save all as *.zip
-          {/* <span>{uploadedFiles.length}</span> */}
+          {isSaving ? (
+            <>
+              Saving <Saveloader />
+            </>
+          ) : (
+            <>
+              <DownloadIcon /> Save all as *.zip
+            </>
+          )}
+          <span>{uploadedFiles.length}</span>
         </button>
       </div>
 
@@ -294,13 +336,15 @@ const MainConverter: React.FC = () => {
         <>
           <FileDisplay
             // title={`Album name: ${albumName} / maybe can make it editable later. And use to save and store images in DB.`}
-            title="Uploaded files"
+            title={albumName}
             // files={uploadedFiles}
             files={uploadedFiles.map(({ file }) => file)}
             settings={uploadedFiles.map(({ settings }) => settings)}
             onRemoveFile={(index) => handleRemoveFile(index, "uploaded")}
             onDownloadFile={handleDownloadSingleFile}
+            onRenameAlbum={handleRenameAlbum}
             onShow={handleShowImage}
+            onSelectFile={handleSelectFile}
           />
         </>
       )}
