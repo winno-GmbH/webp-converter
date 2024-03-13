@@ -1,0 +1,62 @@
+.company h2 {
+  margin: 0.25rem 0;
+}
+
+.company h3 {
+  margin: 0.25rem 0;
+}
+
+.company p {
+  margin: 0.75rem 0;
+}
+
+.form {
+  background-color: #ccc;
+  border-radius: 0.5rem;
+  width: 700px;
+  margin: 0.5rem auto;
+  padding: 0.5rem 1rem;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+.form input,
+.form textarea {
+  padding: 0.5rem;
+  width: 100%;
+  max-width: 75%;
+  min-width: 75%;
+}
+.form textarea {
+  min-height: 35px;
+}
+.label {
+  width: 10rem;
+  padding: 0.125rem;
+  background-color: aliceblue;
+  display: block;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.submitBtn {
+  margin: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  border: none;
+  background-color: #0e61ce;
+  color: white;
+  cursor: pointer;
+  width: 10rem;
+}
+.submitBtn:hover {
+  background-color: #01316e;
+}
+.submitBtn:disabled {
+  background-color: #323c49;
+}
