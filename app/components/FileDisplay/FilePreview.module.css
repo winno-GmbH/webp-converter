@@ -4,6 +4,7 @@
   max-width: 10rem; /* 40 x 0.25 = 10rem */
   border-radius: 0.25rem;
   animation: animate-in 0.75s ease-out forwards;
+  cursor: pointer;
 }
 /* .filePreview:hover {
   cursor: pointer;

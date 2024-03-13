@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { MouseEventHandler, useEffect, useRef, useState } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { UploadIcon } from "@/app/assets/icons/svg/upload-icon";
@@ -12,6 +12,9 @@ import { DownloadIcon } from "@/app/assets/icons/svg/download-icon";
 import styles from "./MainConverter.module.css";
 import InputResize from "./InputResize";
 import InputQuality from "./InputQuality";
+import ImageDimensions from "../FileDisplay/ImageDimensions";
+import { formatSize } from "@/app/utils/utils";
+import { DragDropIcon } from "@/app/assets/icons/svg/drag-drop-icon";
 
 interface fileSettings {
   resize: number;
@@ -24,6 +27,7 @@ const MainConverter: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<{ file: File; settings: fileSettings }[]>([]);
   const [showImageModal, setShowImageModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [convertedImage, setConvertedImage] = useState<File | null>(null);
 
   const [newFileName, setNewFileName] = useState<string>("");
   const [newResize, setNewResize] = useState<string>("");
@@ -38,10 +42,11 @@ const MainConverter: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const defaultResize = 1;
-  const defaultQuality = 0.8;
+  const defaultQuality = 0.75;
 
   const [resize, setResize] = useState<number>(defaultResize);
   const [quality, setQuality] = useState<number>(defaultQuality);
+  const modalFileName = useRef<HTMLInputElement>(null);
 
   // useEffect(() => {
   //   if (typeof window !== "undefined") {
@@ -256,28 +261,103 @@ const MainConverter: React.FC = () => {
     });
   };
 
-  const handleShowImage = (file: File, resize: number, quality: number) => {
+  const handleShowImage = async (file: File, resize: number, quality: number) => {
     setSelectedImage(file);
+    setConvertedImage(null);
+    const convetedFile = await convertToWebP(file, { resize: resize, quality: quality });
+    setConvertedImage(convetedFile);
+
     setShowImageModal(true);
     setNewFileName(file.name);
+
+    modalFileName.current?.focus();
+    modalFileName.current?.select();
+
     setNewResize(resize.toString());
     setNewQuality(quality.toString());
+  };
+
+  const handleUpdatePreview = async () => {
+    if (selectedImage) {
+      console.log("Preview");
+      const convetedFile = await convertToWebP(selectedImage, {
+        resize: parseFloat(newResize),
+        quality: parseFloat(newQuality),
+      });
+      setConvertedImage(convetedFile);
+    }
+  };
+
+  const handleSaveFile = () => {
+    console.log(newFileName);
+
+    if (selectedImage) {
+      setUploadedFiles((prevFiles) =>
+        prevFiles.map((fileObject) =>
+          fileObject.file === selectedImage
+            ? {
+                ...fileObject,
+                file: new File([selectedImage], newFileName, { type: fileObject.file.type }),
+                settings: { ...fileObject.settings, resize: parseFloat(newResize), quality: parseFloat(newQuality) },
+              }
+            : fileObject
+        )
+      );
+    }
+
+    // Update the file name and settings in the converted files array
+    if (selectedImage && convertedFiles.some((file) => file.file === selectedImage)) {
+      setConvertedFiles((prevFiles) =>
+        prevFiles.map((file) =>
+          file.file === selectedImage
+            ? {
+                ...file,
+                file: new File([selectedImage], newFileName, { type: file.file.type }),
+                settings: { ...file.settings, resize: parseFloat(newResize), quality: parseFloat(newQuality) },
+              }
+            : file
+        )
+      );
+    }
+
+    // Close the modal
+    setSelectedImage(null);
+    setNewFileName("");
+  };
+
+  const handleCloseImageModal: MouseEventHandler<HTMLDivElement | HTMLButtonElement> = (event) => {
+    event.stopPropagation();
+    // console.log("Target", event.target);
+    if (
+      event.target == document.querySelector("#modalBackground") ||
+      event.target == document.querySelector("#modalCloseBtn")
+    ) {
+      setSelectedImage(null);
+      setNewFileName("");
+    }
   };
 
   const handleRenameAlbum = (albumName: string) => {
     setAlbumName(albumName);
   };
 
-  useEffect(() => {
-    console.log("Main rerendering");
-  }, []);
+  const handleUploadClick = () => {
+    const uploadBtn = document.querySelector("#uploadBtn") as HTMLButtonElement | null;
+    if (uploadBtn) {
+      uploadBtn.click();
+    }
+  };
+
+  // useEffect(() => {
+  //   console.log("Main rerendering");
+  // }, []);
 
   return (
     <main>
       <h1>Online Image Converter</h1>
 
       <div className={styles.navigation}>
-        <label className={styles.uploadLabel}>
+        <label className={styles.uploadLabel} id="uploadBtn">
           <input
             type="file"
             multiple
@@ -321,8 +401,11 @@ const MainConverter: React.FC = () => {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={handleUploadClick}
       >
-        <p>You can drop your files here...</p>
+        <DragDropIcon />
+        <h3>You can drop your files here...</h3>
+        <p>Accepted image formats: .jpg, .png</p>
       </div>
 
       {/* Uploaded Files area */}
@@ -347,6 +430,95 @@ const MainConverter: React.FC = () => {
             onSelectFile={handleSelectFile}
           />
         </>
+      )}
+      {selectedImage && showImageModal && (
+        <div className={styles.modalWindow} onClick={handleCloseImageModal} id="modalBackground">
+          <div className={styles.modalBody}>
+            <div className={styles.modalHeader}>
+              Resize:
+              <input
+                type="text"
+                value={newResize}
+                onChange={(e) => setNewResize(e.target.value)}
+                className={styles.modalInput}
+              />
+              Quality:
+              <input
+                type="text"
+                value={newQuality}
+                // onChange={(e) => setNewQuality(e.target.value)}
+                onChange={(e) => setNewQuality(e.target.value)}
+                className={styles.modalInput}
+              />
+              <button className={`${styles.modalButton} ${styles.convertButton}`} onClick={handleUpdatePreview}>
+                Preview
+              </button>
+              Name:
+              <input
+                ref={modalFileName}
+                type="text"
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                className={styles.modalInputName}
+              />
+              <button className={`${styles.modalButton} ${styles.uploadButton}`} onClick={handleSaveFile}>
+                Update Image
+              </button>
+            </div>
+            <div className={styles.modalPreview}>
+              <div className={styles.modalHalf}>
+                <div className={styles.modalHalfTitle}>
+                  <span>Original: {formatSize(selectedImage.size)}</span>
+                  <ImageDimensions file={selectedImage} />
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={URL.createObjectURL(selectedImage)} alt={selectedImage.name} />
+              </div>
+              {!convertedImage && (
+                <div className={styles.modalHalf}>
+                  <p style={{ textAlign: "center" }}>
+                    Loading image...
+                    <br />
+                    <br />
+                    <Preloader />
+                  </p>
+                </div>
+              )}
+              {convertedImage && (
+                <div className={styles.modalHalf}>
+                  <div className={styles.modalHalfTitle}>
+                    <span>
+                      Converted: {formatSize(convertedImage.size)}
+                      {` (~${Math.round((convertedImage.size / selectedImage.size) * 100)}% of original)`}
+                    </span>
+                    <ImageDimensions file={convertedImage} />
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={URL.createObjectURL(convertedImage)} alt={convertedImage.name} />
+                </div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              {/* <button className={`${styles.modalButton} ${styles.downloadButton}`} onClick={handleDownloadSingleFile}>
+              Save as *.webp
+              </button> */}
+              {convertedImage && (
+                <button
+                  className={`${styles.modalButton} ${styles.downloadButton}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadSingleFile(convertedImage, { resize, quality });
+                  }}
+                >
+                  Save converted image (as *.webp)
+                </button>
+              )}
+            </div>
+            <button className={styles.modalCloseBtn} onClick={handleCloseImageModal} id="modalCloseBtn">
+              &times;
+            </button>
+          </div>
+        </div>
       )}
     </main>
   );

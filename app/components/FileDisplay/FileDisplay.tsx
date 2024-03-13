@@ -27,9 +27,9 @@ const FileDisplay: React.FC<FileDisplayProps> = React.memo(
   ({ title, files, settings = [], onRemoveFile, onDownloadFile, onRenameAlbum, onShow, onSelectFile }) => {
     console.log(settings);
 
-    useEffect(() => {
-      console.log("FileDisplay rerendering");
-    }, []);
+    // useEffect(() => {
+    //   console.log("FileDisplay rerendering");
+    // }, []);
 
     return (
       <div className={styles.displayBlock}>

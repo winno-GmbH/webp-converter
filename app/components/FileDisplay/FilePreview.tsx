@@ -68,7 +68,7 @@ const FilePreview: React.FC<FilePreviewProps> = React.memo(
               <div className={styles.fileCardHeader}>
                 <span>Resize: {resize.toString()}</span>
                 <span>Quality: {quality.toString()}</span>
-                <span>Selected: {selected.toString()}</span>
+                {/* <span>Selected: {selected.toString()}</span> */}
                 {/* <button onClick={onSelect}>+</button> */}
               </div>
               {/* <img
