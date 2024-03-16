@@ -1,6 +1,6 @@
 "use client";
 
-import { MouseEventHandler, useEffect, useRef, useState } from "react";
+import { MouseEventHandler, SetStateAction, useEffect, useRef, useState } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { UploadIcon } from "@/app/assets/icons/svg/upload-icon";
@@ -29,13 +29,13 @@ const MainConverter: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [convertedImage, setConvertedImage] = useState<File | null>(null);
 
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+
   const [newFileName, setNewFileName] = useState<string>("");
   const [newResize, setNewResize] = useState<string>("");
   const [newQuality, setNewQuality] = useState<string>("");
-  const [albumName, setAlbumName] = useState<string>("My files");
 
-  // const [resize, setResize] = useState<number>(0.7);
-  // const [quality, setQuality] = useState<number>(0.8);
+  const [albumName, setAlbumName] = useState<string>("My files");
 
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +46,7 @@ const MainConverter: React.FC = () => {
 
   const [resize, setResize] = useState<number>(defaultResize);
   const [quality, setQuality] = useState<number>(defaultQuality);
-  const modalFileName = useRef<HTMLInputElement>(null);
+  // const modalFileNameRef = useRef<HTMLInputElement>(null);
 
   // useEffect(() => {
   //   if (typeof window !== "undefined") {
@@ -234,6 +234,11 @@ const MainConverter: React.FC = () => {
     saveAs(convertedFile, convertedFile.name.replace(/\.[^.]+$/, ".webp"));
   };
 
+  // const handleDownloadOneFile = async (file: File, settings: fileSettings) => {
+  //   const convertedFile = await convertToWebP(file, settings);
+  //   saveAs(convertedFile, convertedFile.name.replace(/\.[^.]+$/, ".webp"));
+  // };
+
   const handleDownloadAllAsZip = async () => {
     const zip = new JSZip();
 
@@ -261,21 +266,27 @@ const MainConverter: React.FC = () => {
     });
   };
 
-  const handleShowImage = async (file: File, resize: number, quality: number) => {
+  const handleShowImage = async (file: File, index: number, resize: number, quality: number) => {
+    setNewFileName(file.name);
+
+    setSelectedImageIndex(index);
+    console.log(index);
+
     setSelectedImage(file);
     setConvertedImage(null);
     const convetedFile = await convertToWebP(file, { resize: resize, quality: quality });
     setConvertedImage(convetedFile);
 
     setShowImageModal(true);
-    setNewFileName(file.name);
-
-    modalFileName.current?.focus();
-    modalFileName.current?.select();
 
     setNewResize(resize.toString());
     setNewQuality(quality.toString());
   };
+
+  //! ** Можно ещё на модальном окне сделать кнопки prev - next
+  //! и менять selectedImage и ConvertedImage прямо в том окне
+  //! получается для этого нужно модальное окно сделать отдельным компонентом
+  //! и прокидывать в него selectedFile (или только индекс) и по кнопкам менять его и useEffect
 
   const handleUpdatePreview = async () => {
     if (selectedImage) {
@@ -289,7 +300,7 @@ const MainConverter: React.FC = () => {
   };
 
   const handleSaveFile = () => {
-    console.log(newFileName);
+    //console.log(newFileName);
 
     if (selectedImage) {
       setUploadedFiles((prevFiles) =>
@@ -321,8 +332,8 @@ const MainConverter: React.FC = () => {
     }
 
     // Close the modal
-    setSelectedImage(null);
-    setNewFileName("");
+    // setSelectedImage(null);
+    // setNewFileName("");
   };
 
   const handleCloseImageModal: MouseEventHandler<HTMLDivElement | HTMLButtonElement> = (event) => {
@@ -348,9 +359,49 @@ const MainConverter: React.FC = () => {
     }
   };
 
-  // useEffect(() => {
-  //   console.log("Main rerendering");
-  // }, []);
+  const handleNext = async () => {
+    // alert("Next image");
+
+    if (selectedImageIndex !== null && selectedImageIndex < uploadedFiles.length - 1) {
+      setSelectedImageIndex(selectedImageIndex + 1);
+      setSelectedImage(uploadedFiles[selectedImageIndex + 1].file);
+
+      setNewFileName(uploadedFiles[selectedImageIndex + 1].file.name);
+      setNewResize(uploadedFiles[selectedImageIndex + 1].settings.resize.toString());
+      setNewQuality(uploadedFiles[selectedImageIndex + 1].settings.quality.toString());
+
+      setConvertedImage(null);
+      const convetedFile = await convertToWebP(uploadedFiles[selectedImageIndex + 1].file, {
+        resize: resize,
+        quality: quality,
+      });
+      setConvertedImage(convetedFile);
+      console.log(selectedImageIndex);
+    }
+  };
+
+  const handlePrevious = async () => {
+    // alert("Prev image");
+    if (selectedImageIndex !== null && selectedImageIndex > 0) {
+      setSelectedImageIndex(selectedImageIndex - 1);
+      setSelectedImage(uploadedFiles[selectedImageIndex - 1].file);
+      setNewFileName(uploadedFiles[selectedImageIndex - 1].file.name);
+      setNewResize(uploadedFiles[selectedImageIndex - 1].settings.resize.toString());
+      setNewQuality(uploadedFiles[selectedImageIndex - 1].settings.quality.toString());
+
+      setConvertedImage(null);
+      const convetedFile = await convertToWebP(uploadedFiles[selectedImageIndex - 1].file, {
+        resize: resize,
+        quality: quality,
+      });
+      setConvertedImage(convetedFile);
+      console.log(selectedImageIndex);
+    }
+  };
+
+  useEffect(() => {
+    console.log("Main rerendering");
+  }, []);
 
   return (
     <main>
@@ -432,95 +483,269 @@ const MainConverter: React.FC = () => {
         </>
       )}
       {selectedImage && showImageModal && (
-        <div className={styles.modalWindow} onClick={handleCloseImageModal} id="modalBackground">
-          <div className={styles.modalBody}>
-            <div className={styles.modalHeader}>
-              Resize:
-              <input
-                type="text"
-                value={newResize}
-                onChange={(e) => setNewResize(e.target.value)}
-                className={styles.modalInput}
-              />
-              Quality:
-              <input
-                type="text"
-                value={newQuality}
-                // onChange={(e) => setNewQuality(e.target.value)}
-                onChange={(e) => setNewQuality(e.target.value)}
-                className={styles.modalInput}
-              />
-              <button className={`${styles.modalButton} ${styles.convertButton}`} onClick={handleUpdatePreview}>
-                Preview
-              </button>
-              Name:
-              <input
-                ref={modalFileName}
-                type="text"
-                value={newFileName}
-                onChange={(e) => setNewFileName(e.target.value)}
-                className={styles.modalInputName}
-              />
-              <button className={`${styles.modalButton} ${styles.uploadButton}`} onClick={handleSaveFile}>
-                Update Image
-              </button>
-            </div>
-            <div className={styles.modalPreview}>
-              <div className={styles.modalHalf}>
-                <div className={styles.modalHalfTitle}>
-                  <span>Original: {formatSize(selectedImage.size)}</span>
-                  <ImageDimensions file={selectedImage} />
-                </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={URL.createObjectURL(selectedImage)} alt={selectedImage.name} />
-              </div>
-              {!convertedImage && (
-                <div className={styles.modalHalf}>
-                  <p style={{ textAlign: "center" }}>
-                    Loading image...
-                    <br />
-                    <br />
-                    <Preloader />
-                  </p>
-                </div>
-              )}
-              {convertedImage && (
-                <div className={styles.modalHalf}>
-                  <div className={styles.modalHalfTitle}>
-                    <span>
-                      Converted: {formatSize(convertedImage.size)}
-                      {` (~${Math.round((convertedImage.size / selectedImage.size) * 100)}% of original)`}
-                    </span>
-                    <ImageDimensions file={convertedImage} />
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={URL.createObjectURL(convertedImage)} alt={convertedImage.name} />
-                </div>
-              )}
-            </div>
-            <div className={styles.modalFooter}>
-              {/* <button className={`${styles.modalButton} ${styles.downloadButton}`} onClick={handleDownloadSingleFile}>
-              Save as *.webp
-              </button> */}
-              {convertedImage && (
-                <button
-                  className={`${styles.modalButton} ${styles.downloadButton}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownloadSingleFile(convertedImage, { resize, quality });
-                  }}
-                >
-                  Save converted image (as *.webp)
-                </button>
-              )}
-            </div>
-            <button className={styles.modalCloseBtn} onClick={handleCloseImageModal} id="modalCloseBtn">
-              &times;
-            </button>
-          </div>
-        </div>
+        <ImageModal
+          // image={uploadedFiles[selectedImageIndex]}
+          image={selectedImage}
+          convertedImage={convertedImage}
+          imageSize={newResize}
+          imageQuality={newQuality}
+          imageName={newFileName}
+          setNewSize={setNewResize}
+          setNewQuality={setNewQuality}
+          setNewFileName={setNewFileName}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          onClose={handleCloseImageModal}
+          onUpdatePreview={handleUpdatePreview}
+          onSaveFile={handleSaveFile}
+          onDownloadFile={handleDownloadSingleFile}
+        />
+        // <div className={styles.modalWindow} onClick={handleCloseImageModal} id="modalBackground">
+        //   <div className={styles.modalBody}>
+        //     <div className={styles.modalHeader}>
+        //       Resize:
+        //       <input
+        //         type="text"
+        //         value={newResize}
+        //         onChange={(e) => setNewResize(e.target.value)}
+        //         className={styles.modalInput}
+        //       />
+        //       Quality:
+        //       <input
+        //         type="text"
+        //         value={newQuality}
+        //         // onChange={(e) => setNewQuality(e.target.value)}
+        //         onChange={(e) => setNewQuality(e.target.value)}
+        //         className={styles.modalInput}
+        //       />
+        //       <button className={`${styles.modalButton} ${styles.convertButton}`} onClick={handleUpdatePreview}>
+        //         Preview
+        //       </button>
+        //       Name:
+        //       <input
+        //         ref={modalFileName}
+        //         type="text"
+        //         value={newFileName}
+        //         onChange={(e) => setNewFileName(e.target.value)}
+        //         className={styles.modalInputName}
+        //       />
+        //       <button className={`${styles.modalButton} ${styles.uploadButton}`} onClick={handleSaveFile}>
+        //         Update Image
+        //       </button>
+        //     </div>
+        //     <div className={styles.modalPreview}>
+        //       <div className={styles.modalHalf}>
+        //         <div className={styles.modalHalfTitle}>
+        //           <span>Original: {formatSize(selectedImage.size)}</span>
+        //           <ImageDimensions file={selectedImage} />
+        //         </div>
+        //         {/* eslint-disable-next-line @next/next/no-img-element */}
+        //         <img src={URL.createObjectURL(selectedImage)} alt={selectedImage.name} />
+        //       </div>
+        //       {!convertedImage && (
+        //         <div className={styles.modalHalf}>
+        //           <p style={{ textAlign: "center" }}>
+        //             Loading image...
+        //             <br />
+        //             <br />
+        //             <Preloader />
+        //           </p>
+        //         </div>
+        //       )}
+        //       {convertedImage && (
+        //         <div className={styles.modalHalf}>
+        //           <div className={styles.modalHalfTitle}>
+        //             <span>
+        //               Converted: {formatSize(convertedImage.size)}
+        //               {` (~${Math.round((convertedImage.size / selectedImage.size) * 100)}% of original)`}
+        //             </span>
+        //             <ImageDimensions file={convertedImage} />
+        //           </div>
+        //           {/* eslint-disable-next-line @next/next/no-img-element */}
+        //           <img src={URL.createObjectURL(convertedImage)} alt={convertedImage.name} />
+        //         </div>
+        //       )}
+        //     </div>
+        //     <div className={styles.modalFooter}>
+        //       <button type="button" onClick={handlePrevious}>
+        //         Prev Image
+        //       </button>
+        //       <button type="button" onClick={handleNext}>
+        //         Next Image
+        //       </button>
+        //       {/* <button className={`${styles.modalButton} ${styles.downloadButton}`} onClick={handleDownloadSingleFile}>
+        //       Save as *.webp
+        //       </button> */}
+        //       {convertedImage && (
+        //         <button
+        //           className={`${styles.modalButton} ${styles.downloadButton}`}
+        //           onClick={(e) => {
+        //             e.stopPropagation();
+        //             handleDownloadSingleFile(convertedImage, { resize, quality });
+        //           }}
+        //         >
+        //           Save converted image (as *.webp)
+        //         </button>
+        //       )}
+        //     </div>
+        //     <button className={styles.modalCloseBtn} onClick={handleCloseImageModal} id="modalCloseBtn">
+        //       &times;
+        //     </button>
+        //   </div>
+        // </div>
       )}
     </main>
+  );
+};
+
+interface ImageModalProps {
+  image: File;
+  convertedImage: File | null;
+  imageSize: string;
+  imageQuality: string;
+  imageName: string;
+  setNewSize: React.Dispatch<React.SetStateAction<string>>;
+  setNewQuality: React.Dispatch<React.SetStateAction<string>>;
+  setNewFileName: React.Dispatch<React.SetStateAction<string>>;
+  onNext: () => void;
+  onPrevious: () => void;
+  onClose: MouseEventHandler<HTMLDivElement | HTMLButtonElement>;
+  onUpdatePreview: () => void; // Add the correct type for this function
+  onSaveFile: () => void; // Add the correct type for this function
+  onDownloadFile: (file: File, settings: fileSettings) => Promise<void>; // Add the correct type for this function
+}
+
+const ImageModal = ({
+  image,
+  convertedImage,
+  imageSize,
+  imageQuality,
+  imageName,
+  setNewSize,
+  setNewQuality,
+  setNewFileName,
+  onNext,
+  onPrevious,
+  onClose,
+  onUpdatePreview,
+  onSaveFile,
+  onDownloadFile,
+}: ImageModalProps) => {
+  // const convetedFile = await convertToWebP(file, { resize: resize, quality: quality });
+
+  // const modalFileNameRef = useRef<HTMLInputElement>(null);
+
+  // modalFileNameRef.current?.focus();
+  // modalFileNameRef.current?.select();
+
+  useEffect(() => {
+    console.log("Modal rerendering");
+  }, []);
+
+  return (
+    // <div className="modal">
+    //   <img src={image.src} alt={image.alt} />
+    //   <button onClick={onPrevious}>Previous</button>
+    //   <button onClick={onNext}>Next</button>
+    //   <button onClick={onClose}>Close</button>
+    // </div>
+    <div className={styles.modalWindow} onClick={onClose} id="modalBackground">
+      <div className={styles.modalBody}>
+        <div className={styles.modalHeader}>
+          Resize:
+          <input
+            type="text"
+            value={imageSize}
+            onChange={(e) => setNewSize(e.target.value)}
+            className={styles.modalInput}
+          />
+          Quality:
+          <input
+            type="text"
+            value={imageQuality}
+            // onChange={(e) => setNewQuality(e.target.value)}
+            onChange={(e) => setNewQuality(e.target.value)}
+            className={styles.modalInput}
+          />
+          <button className={`${styles.modalButton} ${styles.convertButton}`} onClick={onUpdatePreview}>
+            Preview
+          </button>
+          Name:
+          <input
+            // ref={modalFileNameRef}
+            type="text"
+            value={imageName}
+            onChange={(e) => setNewFileName(e.target.value)}
+            className={styles.modalInputName}
+          />
+          <button className={`${styles.modalButton} ${styles.uploadButton}`} onClick={onSaveFile}>
+            Save Image
+          </button>
+        </div>
+        <div className={styles.modalPreview}>
+          <div className={styles.modalHalf}>
+            <div className={styles.modalHalfTitle}>
+              <span>Original: {formatSize(image.size)}</span>
+              <ImageDimensions file={image} />
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={URL.createObjectURL(image)} alt={image.name} />
+          </div>
+
+          {!convertedImage && (
+            <div className={styles.modalHalf}>
+              <p style={{ textAlign: "center" }}>
+                Loading image...
+                <br />
+                <br />
+                <Preloader />
+              </p>
+            </div>
+          )}
+
+          {convertedImage && (
+            <div className={styles.modalHalf}>
+              <div className={styles.modalHalfTitle}>
+                <span>
+                  Converted: {formatSize(convertedImage.size)}
+                  {` (~${Math.round((convertedImage.size / image.size) * 100)}% of original)`}
+                </span>
+                <ImageDimensions file={convertedImage} />
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={URL.createObjectURL(convertedImage)} alt={convertedImage.name} />
+            </div>
+          )}
+        </div>
+        <div className={styles.modalFooter}>
+          <div className={styles.modalNavigation}>
+            <button type="button" className={styles.modalNavBtn} onClick={onPrevious}>
+              Prev Image
+            </button>
+            <button type="button" className={styles.modalNavBtn} onClick={onNext}>
+              Next Image
+            </button>
+          </div>
+
+          <button
+            disabled={convertedImage === null}
+            className={`${styles.modalButton} ${styles.downloadButton}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (convertedImage) {
+                // onDownloadFile(convertedImage, { resize: imageSize, quality });
+                saveAs(convertedImage, convertedImage.name.replace(/\.[^.]+$/, ".webp"));
+              }
+            }}
+          >
+            Save converted image (as *.webp)
+          </button>
+        </div>
+        <button className={styles.modalCloseBtn} onClick={onClose} id="modalCloseBtn">
+          &times;
+        </button>
+      </div>
+    </div>
   );
 };
 

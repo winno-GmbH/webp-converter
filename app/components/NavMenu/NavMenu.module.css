@@ -24,12 +24,14 @@
   align-items: flex-start;
 }
 .logo span {
-  background-color: chocolate;
+  background-color: rgba(210, 105, 30, 0.9);
   border-radius: 12px;
-  margin-left: -0.75em;
+  margin-left: -1.25rem;
+  margin-top: -0.5rem;
   padding: 0.25em 0.5em;
   font-size: 35%;
   color: midnightblue;
+  transform: rotateZ(10deg);
 }
 
 .header ul {

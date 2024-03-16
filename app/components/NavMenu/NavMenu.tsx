@@ -55,7 +55,7 @@ const NavMenu = () => {
       <Link href="/">
         <div className={classes.logo}>
           <p>
-            Winno <span>Tools</span>
+            DASH<span>board</span>
           </p>
         </div>
       </Link>
@@ -64,6 +64,9 @@ const NavMenu = () => {
           <li className={clsx({ [classes.active_link]: pathname === "/about" })}>
             {/* <li> */}
             <Link href="/about">About</Link>
+          </li>
+          <li className={clsx({ [classes.active_link]: pathname === "/converter" })}>
+            <Link href="/converter">Dev Image Converter</Link>
           </li>
           {session && (
             <>

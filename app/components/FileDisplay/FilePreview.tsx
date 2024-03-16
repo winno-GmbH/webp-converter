@@ -14,17 +14,18 @@ interface fileSettings {
 
 interface FilePreviewProps {
   file: File;
+  index: number;
   resize: number;
   quality: number;
   selected: boolean;
   onRemove: () => void;
   onDownload: (file: File, settings: fileSettings) => void;
-  onShow: (file: File, quality: number, resize: number) => void;
+  onShow: (file: File, index: number, quality: number, resize: number) => void;
   onSelect: () => void;
 }
 
 const FilePreview: React.FC<FilePreviewProps> = React.memo(
-  ({ file, resize, quality, selected, onRemove, onDownload, onShow, onSelect }) => {
+  ({ file, index, resize, quality, selected, onRemove, onDownload, onShow, onSelect }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -68,6 +69,7 @@ const FilePreview: React.FC<FilePreviewProps> = React.memo(
               <div className={styles.fileCardHeader}>
                 <span>Resize: {resize.toString()}</span>
                 <span>Quality: {quality.toString()}</span>
+                <span>Index: {index.toString()}</span>
                 {/* <span>Selected: {selected.toString()}</span> */}
                 {/* <button onClick={onSelect}>+</button> */}
               </div>
@@ -82,7 +84,7 @@ const FilePreview: React.FC<FilePreviewProps> = React.memo(
                 src={URL.createObjectURL(file)}
                 alt={`Preview of ${file.name}`}
                 className={styles.fileImage}
-                onClick={() => onShow(file, quality, resize)}
+                onClick={() => onShow(file, index, quality, resize)}
                 width={160}
                 height={120}
               />
