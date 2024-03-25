@@ -19,13 +19,13 @@ interface FileDisplayProps {
   onRemoveFile: (index: number) => void;
   onDownloadFile: (file: File, settings: fileSettings) => void;
   onRenameAlbum: (albumName: string) => void;
-  onShow: (file: File, resize: number, quality: number) => void;
+  onShow: (file: File, index: number, resize: number, quality: number) => void;
   onSelectFile: (index: number) => void;
 }
 
 const FileDisplay: React.FC<FileDisplayProps> = React.memo(
   ({ title, files, settings = [], onRemoveFile, onDownloadFile, onRenameAlbum, onShow, onSelectFile }) => {
-    console.log(settings);
+    // console.log(settings);
 
     // useEffect(() => {
     //   console.log("FileDisplay rerendering");
@@ -58,13 +58,14 @@ const FileDisplay: React.FC<FileDisplayProps> = React.memo(
             <FilePreview
               // key={file.name}
               key={index}
+              index={index}
               file={file}
               resize={settings[index]?.resize || 1}
               quality={settings[index]?.quality || 1}
               selected={settings[index]?.selected || false}
               onRemove={() => onRemoveFile(index)}
               onDownload={() => onDownloadFile(file, settings[index])}
-              onShow={() => onShow(file, settings[index]?.resize, settings[index]?.quality)}
+              onShow={() => onShow(file, index, settings[index]?.resize, settings[index]?.quality)}
               onSelect={() => onSelectFile(index)}
             />
           ))}
